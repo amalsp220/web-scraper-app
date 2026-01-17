@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Web Scraper to Excel</title>
+  <style>
+    body { 
+      font-family: sans-serif; 
+      max-width: 600px; 
+      margin: 40px auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    label { 
+      display: block; 
+      margin-top: 12px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button { 
+      margin-top: 16px; 
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #status {
+      margin-top: 16px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+  <h1>Web Scraper to Excel</h1>
+  <p>Paste any website URL and choose what data to extract.</p>
+
+  <label>
+    Website URL:
+    <input id="url" type="text" placeholder="https://example.com" />
+  </label>
+
+  <label>
+    Data type:
+    <select id="mode">
+      <option value="table">First HTML table</option>
+      <option value="links">All links</option>
+    </select>
+  </label>
+
+  <button id="btn">Download Excel</button>
+
+  <div id="status"></div>
+
+  <script>
+    // TODO: Update this URL after deploying backend to Hugging Face
+    const backendBase = "YOUR_HUGGINGFACE_SPACE_URL";
+
+    document.getElementById("btn").addEventListener("click", async () => {
+      const url = document.getElementById("url").value.trim();
+      const mode = document.getElementById("mode").value;
+      const statusDiv = document.getElementById("status");
+      statusDiv.textContent = "";
+      statusDiv.className = "";
+
+      if (!url) {
+        statusDiv.textContent = "Please enter a URL.";
+        statusDiv.className = "error";
+        return;
+      }
+
+      try {
+        statusDiv.textContent = "Scraping... please wait.";
+        const res = await fetch(backendBase.replace(/\/$/, "") + "/scrape", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, mode })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          statusDiv.textContent = "Error: " + (err.detail || res.status);
+          statusDiv.className = "error";
+          return;
+        }
+
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "scraped_data.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        statusDiv.textContent = "Download started successfully!";
+        statusDiv.className = "success";
+      } catch (e) {
+        statusDiv.textContent = "Request failed: " + e.message;
+        statusDiv.className = "error";
+      }
+    });
+  </script>
+</body>
+</html>
